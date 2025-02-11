@@ -47,31 +47,37 @@ const Login = () => {
   return (
     <div className="bg-black text-white min-h-screen flex items-center justify-center p-5">
       <div className="bg-gray-900 border-2 border-red-500 shadow-lg text-center p-6 rounded-lg w-96">
-        <h1 className="text-red-500 text-3xl font-bold">Log In</h1>
-        <p className="text-white mt-2">Welcome back to Blackjack Master!</p>
+        {/* Login Title */}
+        <h1 className="header-title text-3xl">Log In</h1>
+        
+        {/* Welcome Message */}
+        <p className="section-description mt-2">Welcome back to Blackjack Master!</p>
+        
+        {/* Login Form */}
         <form className="flex flex-col gap-4 mt-4" onSubmit={handleSubmit}>
           <input
             type="text"
             name="username"
             placeholder="Username"
-            className="p-2 rounded bg-gray-800 text-white border border-red-500 focus:outline-none"
+            className="p-3 rounded bg-gray-800 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-red-600"
             onChange={handleChange}
           />
           <input
             type="password"
             name="password"
             placeholder="Password"
-            className="p-2 rounded bg-gray-800 text-white border border-red-500 focus:outline-none"
+            className="p-3 rounded bg-gray-800 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-red-600"
             onChange={handleChange}
           />
           {error && <p className="text-red-500">{error}</p>}
-          <button
-            type="submit"
-            className="bg-red-600 text-white py-2 rounded-lg text-lg font-semibold hover:bg-red-700"
-          >
+          
+          {/* Login Button */}
+          <button type="submit" className="button-primary">
             Log In
           </button>
         </form>
+
+        {/* Signup Link */}
         <p className="mt-4 text-sm text-gray-400">
           Don't have an account? <Link to="/signup" className="text-red-500 hover:underline">Sign up</Link>
         </p>

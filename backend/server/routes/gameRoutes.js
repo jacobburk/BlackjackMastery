@@ -4,7 +4,20 @@ const { createGame, hit, stand } = require('../controller/gameController');
 
 // Routes
 router.post('/game', createGame); // Create a game
-router.post('/game/:gameId/hit', hit); // Hit
-router.post('/game/:gameId/stand', stand); // Stand
-
-module.exports = router;
+// Hit: Perform a hit action on a game
+router.post('/game/:gameId/hit', (req, res) => {
+    const { gameId } = req.params; // Extract the gameId from the URL parameters
+    hit(gameId, req.body) // Pass the gameId and request body to the hit controller
+      .then(result => res.json(result)) // Send back the result from the controller
+      .catch(err => res.status(500).json({ message: err.message })); // Handle errors
+  });
+  
+  // Stand: Perform a stand action on a game
+  router.post('/game/:gameId/stand', (req, res) => {
+    const { gameId } = req.params; // Extract the gameId from the URL parameters
+    stand(gameId) // Pass the gameId to the stand controller
+      .then(result => res.json(result)) // Send back the result from the controller
+      .catch(err => res.status(500).json({ message: err.message })); // Handle errors
+  });
+  
+  module.exports = router;

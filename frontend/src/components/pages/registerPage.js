@@ -14,7 +14,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { response: res } = await axios.post(
+      const { data: res } = await axios.post(
         `${process.env.REACT_APP_BACKEND_SERVER_URI}/user/signup`,
         data
       );
@@ -33,40 +33,51 @@ const Register = () => {
   return (
     <div className="bg-black text-white min-h-screen flex items-center justify-center p-5">
       <div className="bg-gray-900 border-2 border-red-500 shadow-lg text-center p-6 rounded-lg w-96">
-        <h1 className="text-red-500 text-3xl font-bold">Register</h1>
-        <p className="text-white mt-2">Join Blackjack Master and elevate your game!</p>
+        {/* Register Title */}
+        <h1 className="header-title text-3xl">Register</h1>
+
+        {/* Welcome Message */}
+        <p className="section-description mt-2">
+          Join Blackjack Master and elevate your game!
+        </p>
+
+        {/* Register Form */}
         <form className="flex flex-col gap-4 mt-4" onSubmit={handleSubmit}>
           <input
             type="text"
             name="username"
             placeholder="Username"
-            className="p-2 rounded bg-gray-800 text-white border border-red-500 focus:outline-none"
+            className="p-3 rounded bg-gray-800 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-red-600"
             onChange={handleChange}
           />
           <input
             type="email"
             name="email"
             placeholder="Email"
-            className="p-2 rounded bg-gray-800 text-white border border-red-500 focus:outline-none"
+            className="p-3 rounded bg-gray-800 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-red-600"
             onChange={handleChange}
           />
           <input
             type="password"
             name="password"
             placeholder="Password"
-            className="p-2 rounded bg-gray-800 text-white border border-red-500 focus:outline-none"
+            className="p-3 rounded bg-gray-800 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-red-600"
             onChange={handleChange}
           />
           {error && <p className="text-red-500">{error}</p>}
-          <button
-            type="submit"
-            className="bg-red-600 text-white py-2 rounded-lg text-lg font-semibold hover:bg-red-700"
-          >
+
+          {/* Register Button */}
+          <button type="submit" className="button-primary">
             Register
           </button>
         </form>
+
+        {/* Login Link */}
         <p className="mt-4 text-sm text-gray-400">
-          Already have an account? <a href="/login" className="text-red-500 hover:underline">Login</a>
+          Already have an account?{" "}
+          <a href="/login" className="text-red-500 hover:underline">
+            Login
+          </a>
         </p>
       </div>
     </div>

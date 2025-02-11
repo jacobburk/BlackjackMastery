@@ -65,14 +65,14 @@ POST http://localhost:5000/api/games/:gameId/hit
 Content-Type: application/json
 
 {
-  "gameId": "67aa9745ff88a5c1494e2c07"
+  "gameId": "67aabf5d0092fcaa84038abb"
 }
 
 ###
-POST http://localhost:5000/api/games/:gameId/stand
-Content-Type: application/json
+
 
 {
-  "gameId": "67aab39fdb8fe0688ef44bf7"
+  "gameId": "67aabf5d0092fcaa84038abb"
 }
 
+###
