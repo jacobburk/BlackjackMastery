@@ -1,4 +1,4 @@
-POST http://localhost:8080/user/signup
+POST http://localhost:8081/user/signup
 Content-Type: application/json 
 
 {
@@ -9,7 +9,7 @@ Content-Type: application/json
 
 ###
 
-POST http://localhost:8080/user/login
+POST http://localhost:8081/user/login
 Content-Type: application/json 
 
 {
@@ -50,3 +50,29 @@ Content-Type: application/json
 
 ###
 POST  http://localhost:8081/user/deleteAll
+
+# Create a new game
+###
+POST http://localhost:8081/api/game
+Content-Type: application/json
+
+{
+  "userId": "67aa93df2dcfd44a30178d53",
+  "bet": 50
+}
+###
+POST http://localhost:5000/api/games/:gameId/hit
+Content-Type: application/json
+
+{
+  "gameId": "67aa9745ff88a5c1494e2c07"
+}
+
+###
+POST http://localhost:5000/api/games/:gameId/stand
+Content-Type: application/json
+
+{
+  "gameId": "67aa9768ff88a5c1494e2c0c"
+}
+

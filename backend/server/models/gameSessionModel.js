@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 // Define the GameSession Schema
-const gameSessionSchema = new Schema({
+const gameSessionSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // Reference to the User model
@@ -32,13 +32,13 @@ const gameSessionSchema = new Schema({
     min: 0,
   },
   feedbackMessages: {
-    type: [String], // Array of feedback messages
+    type: [String], 
     default: [],
   },
 }, {
-  timestamps: true, // Adds createdAt and updatedAt fields
+  timestamps: true, 
 });
 
-// Create and export the GameSession model
+
 const GameSession = mongoose.model('GameSession', gameSessionSchema);
 module.exports = GameSession;

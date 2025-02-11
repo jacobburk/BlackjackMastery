@@ -1,22 +1,21 @@
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
 
-// Define the Card Schema
-const cardSchema = new Schema({
+// Define the card schema
+const cardSchema = new mongoose.Schema({
   value: {
     type: String,
     required: true,
-    enum: [
-      '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', // Standard card values
-    ],
+    enum: ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'],
   },
   suit: {
     type: String,
     required: true,
-    enum: ['hearts', 'diamonds', 'clubs', 'spades'], // Card suits
+    enum: ['hearts', 'diamonds', 'clubs', 'spades'],
   },
 });
 
-// Create and export the Card model
+// Create the Card model
 const Card = mongoose.model('Card', cardSchema);
+
+// Export the model
 module.exports = Card;
