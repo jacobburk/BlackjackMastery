@@ -73,6 +73,6 @@ POST http://localhost:5000/api/games/:gameId/stand
 Content-Type: application/json
 
 {
-  "gameId": "67aa9768ff88a5c1494e2c0c"
+  "gameId": "67aab39fdb8fe0688ef44bf7"
 }
 
