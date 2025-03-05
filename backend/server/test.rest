@@ -61,18 +61,19 @@ Content-Type: application/json
   "bet": 50
 }
 ###
-POST http://localhost:5000/api/games/:gameId/hit
+POST http://localhost:8081/api/game/67b752169af1c07e6a22a3b2/hit
 Content-Type: application/json
 
 {
-  "gameId": "67aabf5d0092fcaa84038abb"
+  "gameId": "67b752169af1c07e6a22a3b2"
 }
 
 ###
-
+POST http://localhost:8081/api/game/67b752669af1c07e6a22a3bf/stand
+Content-type: application/json
 
 {
-  "gameId": "67aabf5d0092fcaa84038abb"
+  "gameId": "67b752669af1c07e6a22a3bf"
 }
 
-###
+

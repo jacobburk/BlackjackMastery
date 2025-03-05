@@ -1,6 +1,6 @@
 const GameSession = require('../models/gameSessionModel');
 const Card = require('../models/cardModel');
-const User = require('../models/userModel');  // Assuming you have a User model
+const User = require('../models/userModel');  
 
 // Function to calculate score
 const calculateScore = (cards) => {
@@ -9,24 +9,32 @@ const calculateScore = (cards) => {
 
   cards.forEach((card) => {
     if (!card || !card.value) {
-      console.error('Invalid card:', card);  // Log invalid cards
+      console.error('Invalid card:', card);
+      return;  
     }
 
-    const value = card.value;
-    if (['J', 'Q', 'K'].includes(value)) {
-      score += 10;
-    } else if (value === 'A') {
-      aces += 1;
-    } else {
-      score += parseInt(value);
+    let value = card.value;
+
+    if (typeof value === 'string') {
+      if (['J', 'Q', 'K'].includes(value)) {
+        value = 10; // Face cards are worth 10 points
+      } else if (value === 'A') {
+        aces += 1; // Track aces separately
+        return; // Don't add it yet
+      } else {
+        value = parseInt(value, 10); // Convert string numbers to integers
+      }
     }
+
+    score += value;
   });
 
+  // Adjust for aces (either 1 or 11)
   while (aces > 0) {
     if (score + 11 > 21) {
-      score += 1; // Count Ace as 1
+      score += 1; // Ace counts as 1
     } else {
-      score += 11; // Count Ace as 11
+      score += 11; // Ace counts as 11
     }
     aces--;
   }
@@ -77,8 +85,8 @@ exports.createGame = async (req, res) => {
 
     // Deal two initial cards
     const deck = await Card.find();
-    if (deck.length === 0) {
-      return res.status(400).json({ error: 'Deck is empty' });
+    if (deck.length < 2) {
+      return res.status(400).json({ error: 'Not enough cards in deck' });
     }
 
     const playerCards = [
@@ -96,10 +104,12 @@ exports.createGame = async (req, res) => {
     const gameSession = new GameSession({
       userId,
       result: 'ongoing',
-      cardsDealt: playerCards, // Store the card objects
+      cardsDealt: playerCards, // Store the player's cards
+      dealerCards: [], // Ensure dealerCards is initialized
       score,
       bet,
     });
+    
 
     await gameSession.save();
     res.status(201).json({ message: 'Game created', gameSession });
@@ -129,21 +139,28 @@ exports.hit = async (req, res) => {
 
     const newCard = deck[Math.floor(Math.random() * deck.length)];
 
-    // Ensure the new card is valid
-    if (!newCard || !newCard.value) {
+    if (!newCard) {
       return res.status(400).json({ error: 'Invalid card dealt' });
     }
 
-    gameSession.cardsDealt.push(newCard);
+    // Convert cardsDealt to plain objects before modifying it
+    let playerCards = gameSession.cardsDealt.map(card => card.toObject ? card.toObject() : card);
 
-    const updatedScore = calculateScore(gameSession.cardsDealt);
+    // Add new card
+    playerCards.push(newCard);
 
+    // Calculate new score using ALL cards
+    const updatedScore = calculateScore(playerCards);
+
+    // Update game state
     if (updatedScore > 21) {
       gameSession.result = 'lost';
     }
 
+    gameSession.cardsDealt = playerCards;  // Ensure full list is saved
     gameSession.score = updatedScore;
     gameSession.actions.push('hit');
+
     await gameSession.save();
 
     res.json({ message: 'Card added', gameSession });
@@ -163,33 +180,40 @@ exports.stand = async (req, res) => {
     }
 
     if (gameSession.result !== 'ongoing') {
-      return res.status(400).json({ error: 'Invalid game session' });
+      return res.status(400).json({ error: 'Game session is not active' });
     }
 
-    // Simulate dealer's actions (basic AI)
-    let dealerScore = gameSession.score;
-    const dealerCards = [...gameSession.cardsDealt]; // Assuming dealer and player share cards
+    // Ensure dealerCards is always an array
+    let dealerCards = gameSession.dealerCards || []; 
+    let dealerScore = calculateScore(dealerCards);
 
     while (dealerScore < 17) {
       const deck = await Card.find();
-      const newCard = deck[Math.floor(Math.random() * deck.length)];
-
-      // Ensure the dealer's new card is valid
-      if (!newCard || !newCard.value) {
-        return res.status(400).json({ error: 'Invalid card dealt' });
+      if (!deck.length) {
+        return res.status(500).json({ error: 'Deck is empty' });
       }
 
+      const newCard = deck[Math.floor(Math.random() * deck.length)];
       dealerCards.push(newCard);
       dealerScore = calculateScore(dealerCards);
     }
 
-    // Dealer's final decision
-    gameSession.result = dealerScore > 21 ? 'won' : (gameSession.score >= dealerScore ? 'won' : 'lost');
+    // Determine result
+    if (dealerScore > 21 || gameSession.score > dealerScore) {
+      gameSession.result = 'won';
+    } else if (gameSession.score < dealerScore) {
+      gameSession.result = 'lost';
+    } else {
+      gameSession.result = 'draw';
+    }
+
+    gameSession.dealerCards = dealerCards; // Save updated dealer cards
     gameSession.actions.push('stand');
     await gameSession.save();
 
-    res.json({ message: 'Game ended', gameSession });
+    res.json({ message: 'Game ended', result: gameSession.result, gameSession });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+
 };
