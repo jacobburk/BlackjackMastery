@@ -10,7 +10,7 @@ const cardSchema = new mongoose.Schema({
   suit: {
     type: String,
     required: true,
-    enum: ['hearts', 'diamonds', 'clubs', 'spades'],
+    enum: ['C', 'D', 'C', 'S'],
   },
 });
 

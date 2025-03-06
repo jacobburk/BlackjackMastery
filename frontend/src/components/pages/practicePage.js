@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import getUserInfo from "../../utilities/decodeJwt";
+import Card from "../card";
 
 const PracticeBlackjack = () => {
   const [game, setGame] = useState(null);
@@ -19,7 +20,6 @@ const PracticeBlackjack = () => {
     fetchUserInfo();
   }, []);
 
-  // Start a new game when user info is available
   useEffect(() => {
     if (user?.id) {
       startGame(user.id);
@@ -41,7 +41,7 @@ const PracticeBlackjack = () => {
   };
 
   const handleHit = async () => {
-    if (!game) return;
+    if (!game || game.result !== 'ongoing') return; // Don't allow hit if the game is not ongoing
     try {
       const response = await axios.post(`http://localhost:8081/api/game/${game._id}/hit`);
       setGame(response.data.gameSession);
@@ -52,7 +52,7 @@ const PracticeBlackjack = () => {
   };
 
   const handleStand = async () => {
-    if (!game) return;
+    if (!game || game.result !== 'ongoing') return; // Don't allow stand if the game is not ongoing
     try {
       const response = await axios.post(`http://localhost:8081/api/game/${game._id}/stand`);
       setGame(response.data.gameSession);
@@ -76,46 +76,56 @@ const PracticeBlackjack = () => {
 
       {game && (
         <div className="section-container mt-8 space-y-8">
-          {/* Player's Hand */}
           <div className="section-item flex flex-col items-center justify-center">
             <h2 className="section-title">Your Hand</h2>
             <div className="flex mt-4 space-x-4">
               {game.cardsDealt.map((card, index) => (
-                <div key={index} className="bg-red-600 p-4 rounded-lg text-white">
-                  {card.value} of {card.suit}
+                <div key={index} className="flex flex-col items-center">
+                  <Card card={`${card.value}-${card.suit}`} />
+                  <p className="text-gray-300 text-sm">{card.value} of {card.suit}</p>
                 </div>
               ))}
             </div>
             <p className="mt-4 text-gray-300">Score: {game.score}</p>
           </div>
 
-          {/* Dealer's Hand */}
           <div className="section-item flex flex-col items-center justify-center">
             <h2 className="section-title">Dealer's Hand</h2>
             <div className="flex mt-4 space-x-4">
-              {game.dealerCards.length > 0 ? (
-                game.dealerCards.map((card, index) => (
-                  <div key={index} className="bg-gray-600 p-4 rounded-lg text-white">
-                    {card.value} of {card.suit}
+              {game.dealerCards.map((card, index) => (
+                index === 0 || game.result !== 'ongoing' ? (
+                  <div key={index} className="flex flex-col items-center">
+                    <Card card={`${card.value}-${card.suit}`} />
+                    <p className="text-gray-300 text-sm">{card.value} of {card.suit}</p>
                   </div>
-                ))
-              ) : (
-                <div className="bg-gray-600 p-4 rounded-lg text-white">?</div>
-              )}
+                ) : (
+                  <Card key={index} card="back" />
+                )
+              ))}
             </div>
             <p className="mt-4 text-gray-300">Score: {game.dealerScore || 'Unknown'}</p>
           </div>
 
-          {/* Actions */}
           <div className="section-item flex flex-col items-center justify-center">
             <h2 className="section-title">Actions</h2>
             <div className="flex mt-6 space-x-6">
-              <button className="button-primary" onClick={handleHit}>Hit</button>
-              <button className="button-primary" onClick={handleStand}>Stand</button>
+              <button 
+                className="button-primary" 
+                onClick={handleHit} 
+                disabled={game.result !== 'ongoing'} // Disable if the game is not ongoing
+              >
+                Hit
+              </button>
+              <button 
+                className="button-primary" 
+                onClick={handleStand} 
+                disabled={game.result !== 'ongoing'} // Disable if the game is not ongoing
+              >
+                Stand
+              </button>
             </div>
           </div>
 
-          {/* Game Status */}
           <div className="mt-12 text-center">
             <h2 className="section-title">Game Status</h2>
             <p className="text-gray-300">Your current status: {game.result}</p>
@@ -124,12 +134,19 @@ const PracticeBlackjack = () => {
         </div>
       )}
 
-      {/* Feedback Message */}
       {message && (
         <div className="mt-6 text-center text-gray-300">
           <p>{message}</p>
         </div>
       )}
+
+      {/* Start New Game Button */}
+      <button 
+        className="mt-8 button-primary" 
+        onClick={() => startGame(user?.id)}
+      >
+        Start New Game
+      </button>
     </div>
   );
 };

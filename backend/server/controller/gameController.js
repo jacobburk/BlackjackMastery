@@ -17,24 +17,23 @@ const calculateScore = (cards) => {
 
     if (typeof value === 'string') {
       if (['J', 'Q', 'K'].includes(value)) {
-        value = 10; // Face cards are worth 10 points
+        value = 10;
       } else if (value === 'A') {
-        aces += 1; // Track aces separately
-        return; // Don't add it yet
+        aces += 1;
+        return;
       } else {
-        value = parseInt(value, 10); // Convert string numbers to integers
+        value = parseInt(value, 10);
       }
     }
 
     score += value;
   });
 
-  // Adjust for aces (either 1 or 11)
   while (aces > 0) {
-    if (score + 11 > 21) {
-      score += 1; // Ace counts as 1
+    if (score + 11 <= 21) {
+      score += 11;
     } else {
-      score += 11; // Ace counts as 11
+      score += 1;
     }
     aces--;
   }
@@ -45,11 +44,8 @@ const calculateScore = (cards) => {
 // Function to populate deck if empty
 const populateDeckIfEmpty = async () => {
   const existingCards = await Card.find();
-  if (existingCards.length > 0) {
-    return; // Deck already populated
-  }
+  if (existingCards.length > 0) return;
 
-  // Standard deck of cards
   const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
   const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
@@ -60,7 +56,6 @@ const populateDeckIfEmpty = async () => {
     });
   });
 
-  // Save the deck to the database
   await Card.insertMany(cards);
 };
 
@@ -68,48 +63,36 @@ const populateDeckIfEmpty = async () => {
 exports.createGame = async (req, res) => {
   try {
     const { userId, bet } = req.body;
-
-    // Validate userId
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(400).json({ error: 'User not found' });
-    }
+    if (!user) return res.status(400).json({ error: 'User not found' });
 
-    // Validate bet
-    if (bet <= 0) {
-      return res.status(400).json({ error: 'Bet must be a positive number' });
-    }
+    if (bet <= 0) return res.status(400).json({ error: 'Bet must be positive' });
 
-    // Ensure the deck is populated before dealing cards
     await populateDeckIfEmpty();
 
-    // Deal two initial cards
     const deck = await Card.find();
-    if (deck.length < 2) {
-      return res.status(400).json({ error: 'Not enough cards in deck' });
-    }
+    if (deck.length < 3) return res.status(400).json({ error: 'Not enough cards in deck' });
 
     const playerCards = [
       deck[Math.floor(Math.random() * deck.length)],
       deck[Math.floor(Math.random() * deck.length)],
     ];
 
-    // Ensure valid cards were selected
-    if (!playerCards[0] || !playerCards[1]) {
-      return res.status(400).json({ error: 'Invalid cards dealt' });
-    }
+    const dealerCards = [deck[Math.floor(Math.random() * deck.length)]];
 
     const score = calculateScore(playerCards);
+    const dealerScore = calculateScore(dealerCards);
 
     const gameSession = new GameSession({
       userId,
       result: 'ongoing',
-      cardsDealt: playerCards, // Store the player's cards
-      dealerCards: [], // Ensure dealerCards is initialized
+      cardsDealt: playerCards,
+      dealerCards,
       score,
+      dealerScore,
       bet,
+      actions: [],
     });
-    
 
     await gameSession.save();
     res.status(201).json({ message: 'Game created', gameSession });
@@ -118,87 +101,68 @@ exports.createGame = async (req, res) => {
   }
 };
 
-// Hit (request a new card)
+
+// Hit (draw another card)
 exports.hit = async (req, res) => {
   try {
     const { gameId } = req.params;
     const gameSession = await GameSession.findById(gameId);
 
-    if (!gameSession) {
-      return res.status(404).json({ error: 'Game session not found' });
-    }
+    if (!gameSession) return res.status(404).json({ error: 'Game session not found' });
 
     if (gameSession.result !== 'ongoing') {
-      return res.status(400).json({ error: 'Invalid game session' });
+      return res.status(400).json({ error: 'Game session is over' });
     }
 
     const deck = await Card.find();
-    if (deck.length === 0) {
-      return res.status(400).json({ error: 'Deck is empty' });
-    }
+    if (deck.length === 0) return res.status(500).json({ error: 'Deck is empty' });
 
     const newCard = deck[Math.floor(Math.random() * deck.length)];
+    gameSession.cardsDealt.push(newCard);
+    gameSession.score = calculateScore(gameSession.cardsDealt);
 
-    if (!newCard) {
-      return res.status(400).json({ error: 'Invalid card dealt' });
+    // **Check if player busts (score > 21)**
+    if (gameSession.score > 21) {
+      gameSession.result = 'lost'; // Player busts and loses immediately
     }
 
-    // Convert cardsDealt to plain objects before modifying it
-    let playerCards = gameSession.cardsDealt.map(card => card.toObject ? card.toObject() : card);
-
-    // Add new card
-    playerCards.push(newCard);
-
-    // Calculate new score using ALL cards
-    const updatedScore = calculateScore(playerCards);
-
-    // Update game state
-    if (updatedScore > 21) {
-      gameSession.result = 'lost';
-    }
-
-    gameSession.cardsDealt = playerCards;  // Ensure full list is saved
-    gameSession.score = updatedScore;
     gameSession.actions.push('hit');
-
     await gameSession.save();
 
-    res.json({ message: 'Card added', gameSession });
+    res.json({ 
+      message: gameSession.result === 'lost' ? 'Player busted! Game over.' : 'Card drawn', 
+      gameSession 
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// Stand (end the game and calculate outcome)
+// Stand (end the game and determine outcome)
 exports.stand = async (req, res) => {
   try {
     const { gameId } = req.params;
     const gameSession = await GameSession.findById(gameId);
 
-    if (!gameSession) {
-      return res.status(404).json({ error: 'Game session not found' });
-    }
+    if (!gameSession) return res.status(404).json({ error: 'Game session not found' });
 
     if (gameSession.result !== 'ongoing') {
-      return res.status(400).json({ error: 'Game session is not active' });
+      return res.status(400).json({ error: 'Game session is over' });
     }
 
-    // Ensure dealerCards is always an array
-    let dealerCards = gameSession.dealerCards || []; 
+    let dealerCards = gameSession.dealerCards;
+    const deck = await Card.find();
+    if (deck.length === 0) return res.status(500).json({ error: 'Deck is empty' });
+
+    dealerCards.push(deck[Math.floor(Math.random() * deck.length)]);
     let dealerScore = calculateScore(dealerCards);
 
     while (dealerScore < 17) {
-      const deck = await Card.find();
-      if (!deck.length) {
-        return res.status(500).json({ error: 'Deck is empty' });
-      }
-
       const newCard = deck[Math.floor(Math.random() * deck.length)];
       dealerCards.push(newCard);
       dealerScore = calculateScore(dealerCards);
     }
 
-    // Determine result
     if (dealerScore > 21 || gameSession.score > dealerScore) {
       gameSession.result = 'won';
     } else if (gameSession.score < dealerScore) {
@@ -207,7 +171,8 @@ exports.stand = async (req, res) => {
       gameSession.result = 'draw';
     }
 
-    gameSession.dealerCards = dealerCards; // Save updated dealer cards
+    gameSession.dealerCards = dealerCards;
+    gameSession.dealerScore = dealerScore;
     gameSession.actions.push('stand');
     await gameSession.save();
 
@@ -215,5 +180,4 @@ exports.stand = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-
 };
