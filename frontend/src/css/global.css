@@ -54,7 +54,7 @@ body {
 }
 
 .section-item {
-    @apply bg-gray-800 p-8 rounded-lg shadow-lg w-1/3;  /* Slight shadow with rounded corners for each section card */
+    @apply bg-gray-800 p-8 rounded-lg shadow-lg w-full;  /* Slight shadow with rounded corners for each section card */
 }
 
 /* Profile Button Layout */
