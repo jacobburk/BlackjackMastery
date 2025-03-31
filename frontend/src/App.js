@@ -15,6 +15,7 @@ import { createContext, useState, useEffect } from "react";
 import getUserInfo from "./utilities/decodeJwt";
 import Practice from "./components/pages/practicePage";
 import BasicStrategy from "./components/pages/basicStrategyPage";
+import CardCounting from "./components/pages/cardCountingPage";
 
 export const UserContext = createContext();
 //test change
@@ -38,6 +39,7 @@ const App = () => {
           <Route path="/privateUserProfile" element={<PrivateUserProfile />} />
           <Route path ="/practice" element={<Practice/>}/>
           <Route path="/basic-strategy" element={<BasicStrategy/>}/>
+          <Route path ="/card-counting" element={<CardCounting/>}></Route>
         </Routes>
       </UserContext.Provider>
     </>

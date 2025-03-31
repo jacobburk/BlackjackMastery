@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'; // Import useNavigate for redire
 import getUserInfo from '../../utilities/decodeJwt'; // Assuming this function gets user info from JWT
 import '../../css/global.css'
 
-const BlackjackStrategyPage = () => {
+const CardCountingPage = () => {
     const [user, setUser] = useState(null);
     const [showExplanation, setShowExplanation] = useState({}); // State to track which section has explanation visible
     const navigate = useNavigate(); // Use navigate to redirect if not logged in
@@ -33,103 +33,107 @@ const BlackjackStrategyPage = () => {
         <div className="bg-black text-white min-h-screen flex flex-col items-center justify-center p-5">
             <div className="section-item text-center w-full max-w-4xl px-6 py-8 space-y-8">
                 {/* Main Title */}
-                <h1 className="header-title">Blackjack Basic Strategy</h1>
+                <h1 className="header-title">Card Counting in Blackjack</h1>
                 
                 {/* Subtitle */}
-                <h2 className="header-subtitle mb-3">Master the Essential Blackjack Strategies</h2>
+                <h2 className="header-subtitle mb-3">Master the Art of Card Counting</h2>
                 
                 {/* Description */}
                 <p className="section-description mt-2">
-                    The key to winning at Blackjack is understanding the basic strategy. Whether you’re a beginner or an experienced player, knowing when to hit, stand, double down, or split will significantly improve your chances of winning.
+                    Card counting is a strategy used to determine whether the next hand is likely to be in the player’s favor or the dealer’s. By keeping track of the cards that have been played, you can adjust your bets and playing strategy accordingly.
                 </p>
 
-                {/* Basic Strategy Sections */}
+                {/* Card Counting Strategy Sections */}
                 <div className="space-y-8">
-                    {/* When to Hit Section */}
+                    {/* The Hi-Lo System */}
                     <div className="section-item relative">
-                        <h3 className="section-title">1. When to Hit</h3>
+                        <h3 className="section-title">1. The Hi-Lo System</h3>
                         <p className="section-description">
-                            If your total is 8 or less, always hit. If your total is between 12 and 16 and the dealer's card is 2-6, you should stand. Otherwise, hit to try and improve your hand.
+                            The Hi-Lo system assigns values to cards: +1 for low cards (2-6), 0 for neutral cards (7-9), and -1 for high cards (10-Ace). By keeping a running count, you can determine when the deck favors the player.
                         </p>
+                        {/* Explanation Button */}
                         <button 
                             className="button-secondary mt-2" 
-                            onClick={() => handleToggleExplanation('hit')}
+                            onClick={() => handleToggleExplanation('hiLo')}
                         >
-                            {showExplanation.hit ? 'Hide Explanation' : 'Explanation'}
+                            {showExplanation.hiLo ? 'Hide Explanation' : 'Explanation'}
                         </button>
-                        {showExplanation.hit && (
+                        {showExplanation.hiLo && (
                             <p className="mt-2 text-gray-300 text-sm">
-                                When your hand value is low, hitting increases your chances of improving your hand. If the dealer shows a weak card (2-6), you can stand to force them into busting, but hitting is safer if the dealer has stronger cards.
+                                When the count is positive, it means there are more high cards remaining in the deck, which benefits the player. If the count is negative, the dealer has the advantage.
                             </p>
                         )}
                     </div>
                     
-                    {/* When to Stand Section */}
+                    {/* True Count Calculation */}
                     <div className="section-item relative">
-                        <h3 className="section-title">2. When to Stand</h3>
+                        <h3 className="section-title">2. True Count Calculation</h3>
                         <p className="section-description">
-                            Stand when you have a total of 17 or more. Also, stand when you have a hand value between 12-16 if the dealer is showing a 2-6.
+                            To get an accurate measure of deck favorability, divide the running count by the number of decks remaining in the shoe.
                         </p>
+                        {/* Explanation Button */}
                         <button 
                             className="button-secondary mt-2" 
-                            onClick={() => handleToggleExplanation('stand')}
+                            onClick={() => handleToggleExplanation('trueCount')}
                         >
-                            {showExplanation.stand ? 'Hide Explanation' : 'Explanation'}
+                            {showExplanation.trueCount ? 'Hide Explanation' : 'Explanation'}
                         </button>
-                        {showExplanation.stand && (
+                        {showExplanation.trueCount && (
                             <p className="mt-2 text-gray-300 text-sm">
-                                Standing on 17 or more ensures that you are unlikely to bust. If the dealer is showing a weak card, standing with 12-16 forces them into a risky position where they may bust.
+                                The true count refines the running count by considering the number of decks left to be played. A high true count means it’s a good time to increase bets.
                             </p>
                         )}
                     </div>
                     
-                    {/* When to Double Down Section */}
+                    {/* Betting Strategy */}
                     <div className="section-item relative">
-                        <h3 className="section-title">3. When to Double Down</h3>
+                        <h3 className="section-title">3. Adjusting Your Bets</h3>
                         <p className="section-description">
-                            If you have a total of 11, always double down. For totals of 10, double down when the dealer’s face-up card is 9 or lower.
+                            Increase your bet when the true count is high, as the chances of getting a blackjack or winning hand improve.
                         </p>
+                        {/* Explanation Button */}
                         <button 
                             className="button-secondary mt-2" 
-                            onClick={() => handleToggleExplanation('doubleDown')}
+                            onClick={() => handleToggleExplanation('bettingStrategy')}
                         >
-                            {showExplanation.doubleDown ? 'Hide Explanation' : 'Explanation'}
+                            {showExplanation.bettingStrategy ? 'Hide Explanation' : 'Explanation'}
                         </button>
-                        {showExplanation.doubleDown && (
+                        {showExplanation.bettingStrategy && (
                             <p className="mt-2 text-gray-300 text-sm">
-                                Doubling down allows you to double your bet while receiving only one more card. This is optimal when you have a strong chance of getting a favorable card, especially if the dealer has a weaker upcard.
+                                When the true count is +2 or higher, it indicates a strong player advantage, making it a great time to raise bets. If the count drops, reduce your bet to minimize losses.
                             </p>
                         )}
                     </div>
                     
-                    {/* When to Split Section */}
+                    {/* Avoiding Detection */}
                     <div className="section-item relative">
-                        <h3 className="section-title">4. When to Split</h3>
+                        <h3 className="section-title">4. Avoiding Detection</h3>
                         <p className="section-description">
-                            Always split Aces and 8s. Avoid splitting 10s, 5s, or 4s as these are strong hands.
+                            Casinos frown upon card counting. Use betting variation and avoid obvious patterns to stay under the radar.
                         </p>
+                        {/* Explanation Button */}
                         <button 
                             className="button-secondary mt-2" 
-                            onClick={() => handleToggleExplanation('split')}
+                            onClick={() => handleToggleExplanation('avoidDetection')}
                         >
-                            {showExplanation.split ? 'Hide Explanation' : 'Explanation'}
+                            {showExplanation.avoidDetection ? 'Hide Explanation' : 'Explanation'}
                         </button>
-                        {showExplanation.split && (
+                        {showExplanation.avoidDetection && (
                             <p className="mt-2 text-gray-300 text-sm">
-                                Splitting Aces and 8s gives you the best chance at winning by creating two separate hands. A pair of 10s or 5s already represents a strong hand, so it's best to leave them together for the highest chance of winning.
+                                Using a mix of small and large bets randomly can help disguise your counting. Acting naturally and engaging with the dealer and players also makes you less suspicious.
                             </p>
                         )}
                     </div>
                 </div>
-
+                
                 {/* Embedded YouTube Video */}
                 <div className="mt-8 w-full max-w-4xl">
-                    <h3 className="section-title">Learn More About Blackjack Strategy</h3>
+                    <h3 className="section-title">Learn More About Card Counting</h3>
                     <div className="video-container mt-4">
                         <iframe 
                             width="100%" 
                             height="400" 
-                            src="https://www.youtube.com/embed/iBy03cQ0ne0" 
+                            src="https://www.youtube.com/embed/QLYsck5fsLU" 
                             title="YouTube video player" 
                             frameBorder="0" 
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -142,4 +146,4 @@ const BlackjackStrategyPage = () => {
     );
 }
 
-export default BlackjackStrategyPage;
+export default CardCountingPage;

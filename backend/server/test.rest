@@ -75,5 +75,11 @@ Content-type: application/json
 {
   "gameId": "67b752669af1c07e6a22a3bf"
 }
+###
+GET http://localhost:8081/api/game/67d3007e98d9754d3544c2ae/running-count
+Content-type: application/json
 
+{
+  "gameId": "67b752669af1c07e6a22a3bf"
+}
 

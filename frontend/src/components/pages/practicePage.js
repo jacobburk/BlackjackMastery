@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import getUserInfo from "../../utilities/decodeJwt";
 import Card from "../card";
+import '../../css/global.css';
 
 const PracticeBlackjack = () => {
   const [game, setGame] = useState(null);
@@ -9,6 +10,9 @@ const PracticeBlackjack = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const [runningCount, setRunningCount] = useState(0);
+  const [remainingCards, setRemainingCards] = useState(0);
+  const [showRunningCount, setShowRunningCount] = useState(true);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -22,29 +26,67 @@ const PracticeBlackjack = () => {
 
   useEffect(() => {
     if (user?.id) {
-      startGame(user.id);
+      startNewGameSession(user.id);
     }
   }, [user]);
 
-  const startGame = async (userId) => {
+  useEffect(() => {
+    if (game) {
+      fetchRunningCount();
+      fetchRemainingCards();
+    }
+  }, [game]);
+
+  const startNewGameSession = async (userId) => {
     try {
       setLoading(true);
       const response = await axios.post('http://localhost:8081/api/game', { userId, bet: betAmount });
       setGame(response.data.gameSession);
-      setMessage('Game started!');
+      setMessage('New game session started!');
+      setRunningCount(0);
+      fetchRemainingCards();
     } catch (error) {
       console.error('Error starting the game:', error);
-      setMessage('Failed to start the game.');
+      setMessage('Failed to start a new game session.');
     } finally {
       setLoading(false);
     }
   };
 
+  const startNewHand = async () => {
+    if (!game) return;
+    try {
+      setLoading(true);
+      const response = await axios.post(`http://localhost:8081/api/game/${game._id}/new-hand`);
+      setGame(response.data.gameSession);
+      setMessage('New hand started!');
+      fetchRemainingCards();
+    } catch (error) {
+      console.error('Error starting a new hand:', error);
+      setMessage('Failed to start a new hand.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const endGameSession = async () => {
+    if (!game) return;
+    try {
+      await axios.post(`http://localhost:8081/api/game/${game._id}/end`);
+      setGame(null);
+      setMessage('Game session ended.');
+    } catch (error) {
+      console.error('Error ending the game session:', error);
+      setMessage('Failed to end the game session.');
+    }
+  };
+
   const handleHit = async () => {
-    if (!game || game.result !== 'ongoing') return; // Don't allow hit if the game is not ongoing
+    if (!game || game.result !== 'ongoing') return;
     try {
       const response = await axios.post(`http://localhost:8081/api/game/${game._id}/hit`);
       setGame(response.data.gameSession);
+      fetchRemainingCards();
     } catch (error) {
       console.error('Error hitting:', error);
       setMessage('Error drawing a card.');
@@ -52,14 +94,36 @@ const PracticeBlackjack = () => {
   };
 
   const handleStand = async () => {
-    if (!game || game.result !== 'ongoing') return; // Don't allow stand if the game is not ongoing
+    if (!game || game.result !== 'ongoing') return;
     try {
       const response = await axios.post(`http://localhost:8081/api/game/${game._id}/stand`);
       setGame(response.data.gameSession);
       setMessage(`Game ended. Result: ${response.data.result}`);
+      fetchRemainingCards();
     } catch (error) {
       console.error('Error standing:', error);
       setMessage('Error finishing the game.');
+    }
+  };
+
+  const fetchRunningCount = async () => {
+    if (!game) return;
+    try {
+      const response = await axios.get(`http://localhost:8081/api/game/${game._id}/running-count`);
+      setRunningCount(response.data.runningCount);
+    } catch (error) {
+      console.error('Error fetching running count:', error);
+      setMessage('Error retrieving running count.');
+    }
+  };
+
+  const fetchRemainingCards = async () => {
+    try {
+      const response = await axios.get('http://localhost:8081/api/game/${game._id}/remaining-cards');
+      setRemainingCards(response.data.remainingCards);
+    } catch (error) {
+      console.error('Error fetching remaining cards:', error);
+      setMessage('Error retrieving remaining cards.');
     }
   };
 
@@ -75,29 +139,25 @@ const PracticeBlackjack = () => {
       </div>
 
       {game && (
-        <div className="section-container mt-8 space-y-8">
+        <div className="section-container mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Player's Hand */}
           <div className="section-item flex flex-col items-center justify-center">
             <h2 className="section-title">Your Hand</h2>
             <div className="flex mt-4 space-x-4">
               {game.cardsDealt.map((card, index) => (
-                <div key={index} className="flex flex-col items-center">
-                  <Card card={`${card.value}-${card.suit}`} />
-                  <p className="text-gray-300 text-sm">{card.value} of {card.suit}</p>
-                </div>
+                <Card key={index} card={`${card.value}-${card.suit}`} />
               ))}
             </div>
             <p className="mt-4 text-gray-300">Score: {game.score}</p>
           </div>
 
+          {/* Dealer's Hand */}
           <div className="section-item flex flex-col items-center justify-center">
             <h2 className="section-title">Dealer's Hand</h2>
             <div className="flex mt-4 space-x-4">
               {game.dealerCards.map((card, index) => (
                 index === 0 || game.result !== 'ongoing' ? (
-                  <div key={index} className="flex flex-col items-center">
-                    <Card card={`${card.value}-${card.suit}`} />
-                    <p className="text-gray-300 text-sm">{card.value} of {card.suit}</p>
-                  </div>
+                  <Card key={index} card={`${card.value}-${card.suit}`} />
                 ) : (
                   <Card key={index} card="back" />
                 )
@@ -106,47 +166,47 @@ const PracticeBlackjack = () => {
             <p className="mt-4 text-gray-300">Score: {game.dealerScore || 'Unknown'}</p>
           </div>
 
+          {/* Actions + Running Count */}
           <div className="section-item flex flex-col items-center justify-center">
             <h2 className="section-title">Actions</h2>
             <div className="flex mt-6 space-x-6">
-              <button 
-                className="button-primary" 
-                onClick={handleHit} 
-                disabled={game.result !== 'ongoing'} // Disable if the game is not ongoing
-              >
+              <button className="button-primary" onClick={handleHit} disabled={game.result !== 'ongoing'}>
                 Hit
               </button>
-              <button 
-                className="button-primary" 
-                onClick={handleStand} 
-                disabled={game.result !== 'ongoing'} // Disable if the game is not ongoing
-              >
+              <button className="button-primary" onClick={handleStand} disabled={game.result !== 'ongoing'}>
                 Stand
               </button>
             </div>
-          </div>
 
-          <div className="mt-12 text-center">
-            <h2 className="section-title">Game Status</h2>
-            <p className="text-gray-300">Your current status: {game.result}</p>
-            <p className="mt-4 text-gray-400">Dealer's current score: {game.dealerScore || '?'}</p>
+            {/* Running Count */}
+            <button className="mt-4 button-secondary" onClick={() => setShowRunningCount(!showRunningCount)}>
+              {showRunningCount ? 'Hide Running Count' : 'Show Running Count'}
+            </button>
+
+            {showRunningCount && (
+              <div className="mt-4 text-yellow-400 text-center">
+                <p>Running Count: {runningCount}</p>
+                <p>Remaining Cards: {remainingCards}</p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {message && (
-        <div className="mt-6 text-center text-gray-300">
-          <p>{message}</p>
+      {/* Game Session Buttons (Outside the Box) */}
+      {game && (
+        <div className="mt-6 flex space-x-6">
+          <button className="button-primary" onClick={startNewHand}>Start New Hand</button>
+          <button className="button-danger" onClick={endGameSession}>End Game Session</button>
         </div>
       )}
 
       {/* Start New Game Button */}
-      <button 
-        className="mt-8 button-primary" 
-        onClick={() => startGame(user?.id)}
-      >
-        Start New Game
+      <button className="mt-8 button-primary" onClick={() => startNewGameSession(user?.id)}>
+        Start New Game Session
       </button>
+
+      {message && <div className="mt-6 text-center text-gray-300"><p>{message}</p></div>}
     </div>
   );
 };
