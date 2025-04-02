@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createGame, hit, stand, getRunningCount, startNewHand, endGameSession, remainingCards } = require('../controller/gameController');
+const { createGame, hit, stand, getRunningCount, startNewHand, endGameSession, remainingCards, } = require('../controller/gameController');
 
 // Route to create a game
 router.post('/game', createGame);  
@@ -19,7 +19,5 @@ router.post('/game/:gameId/new-hand', startNewHand);
 router.post('/game/:gameId/end-session', endGameSession)
 
 router.get('/game/:gameId/remaining-cards', remainingCards)
-
-
 
 module.exports = router;

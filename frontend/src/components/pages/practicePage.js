@@ -14,6 +14,13 @@ const PracticeBlackjack = () => {
   const [remainingCards, setRemainingCards] = useState(0);
   const [showRunningCount, setShowRunningCount] = useState(true);
 
+  const [userPrompt, setUserPrompt] = useState(''); // State for user input
+  const [responseMessage, setResponseMessage] = useState('');
+  const [messageHistory, setMessageHistory] = useState([
+    { role: "system", content: 'You are a professional blackjack teacher, helping people learn basic strategy and card counting.' },
+  ]);
+  const [chatLoading, setChatLoading] = useState(false);
+
   useEffect(() => {
     const fetchUserInfo = async () => {
       const userInfo = getUserInfo();
@@ -119,11 +126,48 @@ const PracticeBlackjack = () => {
 
   const fetchRemainingCards = async () => {
     try {
-      const response = await axios.get('http://localhost:8081/api/game/${game._id}/remaining-cards');
+      const response = await axios.get(`http://localhost:8081/api/game/${game._id}/remaining-cards`);
       setRemainingCards(response.data.remainingCards);
     } catch (error) {
       console.error('Error fetching remaining cards:', error);
       setMessage('Error retrieving remaining cards.');
+    }
+  };
+
+  const handleAsk = async () => {
+    setChatLoading(true);
+    document.body.style.cursor = 'wait';
+
+    // Get the player's and dealer's hand values
+    const playerScore = game.score;
+    const dealerScore = game.dealerScore;
+
+    const newMessageHistory = [
+      ...messageHistory,
+      {
+        role: "user",
+        content: `Based on the current hand values (Player: ${playerScore}, Dealer: ${dealerScore}), should I hit or stand?`
+      },
+    ];
+
+    try {
+      const response = await axios.post('http://localhost:8081/chat/canned', {
+        messageHistory: newMessageHistory
+      });
+
+      const responseContent = response.data.message.content;
+      setResponseMessage(responseContent);
+
+      setMessageHistory([
+        ...newMessageHistory,
+        { role: "assistant", content: responseContent }
+      ]);
+    } catch (error) {
+      console.error('There was an error!', error);
+      setResponseMessage('There was an error processing your request.');
+    } finally {
+      setChatLoading(false);
+      document.body.style.cursor = 'default';
     }
   };
 
@@ -207,6 +251,33 @@ const PracticeBlackjack = () => {
       </button>
 
       {message && <div className="mt-6 text-center text-gray-300"><p>{message}</p></div>}
+
+      {/* Chatbox Section */}
+      <div className="mt-8">
+        <h2 className="text-center text-xl">Ask a Question</h2>
+        <div className="flex flex-col items-center mt-4">
+          <textarea
+            value={userPrompt}
+            onChange={(e) => setUserPrompt(e.target.value)}
+            rows="4"
+            className="w-80 p-2 border border-gray-300 rounded"
+            placeholder="Ask about blackjack basic strategy..."
+          />
+          <button
+            className="mt-4 button-primary"
+            onClick={handleAsk}
+            disabled={chatLoading}
+          >
+            {chatLoading ? 'Asking...' : 'Ask'}
+          </button>
+          {responseMessage && (
+            <div className="mt-4 text-yellow-400">
+              <h3>Response:</h3>
+              <p>{responseMessage}</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

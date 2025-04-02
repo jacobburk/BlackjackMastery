@@ -2,21 +2,28 @@ const GameSession = require('../models/gameSessionModel');
 const Card = require('../models/cardModel');
 const User = require('../models/userModel');
 
-// Function to create and shuffle a new deck using Card model
+// Function to create and shuffle a new deck using Card modelconst Card = require('../models/Card'); // Adjust the path based on your project structure
+
 const createShuffledDeck = () => {
   const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
   const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
   let deck = [];
 
+  // Create the deck using the existing Card model
   suits.forEach((suit) => {
     values.forEach((value) => {
       deck.push(new Card({ suit, value }));
     });
   });
 
-  return deck.sort(() => Math.random() - 0.5); // Shuffle deck
-};
+  // Shuffle the deck using Fisher-Yates shuffle
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]]; // Swap cards
+  }
 
+  return deck;
+}
 // Function to calculate the score
 const calculateScore = (cards) => {
   let score = 0, aces = 0;
@@ -225,4 +232,4 @@ const startNewHand = async (req, res) => {
   }
 };
 
-module.exports = { createGame, hit, stand, getRunningCount, endGameSession, startNewHand, remainingCards,};
+module.exports = { createGame, hit, stand, getRunningCount, endGameSession, startNewHand, remainingCards, createShuffledDeck};
