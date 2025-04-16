@@ -10,6 +10,7 @@ const editUser = require('./routes/userEditUser')
 const deleteUser = require('./routes/userDeleteAll')
 const game = require("./routes/gameRoutes")
 const chat = require("./routes/chat")
+const stats =require("./routes/statsRoutes")
 
 
 require('dotenv').config();
@@ -27,6 +28,7 @@ app.use('/user', editUser)
 app.use('/user', deleteUser)
 app.use('/api', game)
 app.use('/chat',chat)
+app.use('/stats', stats)
 
 
 app.listen(SERVER_PORT, (req, res) => {

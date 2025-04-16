@@ -21,6 +21,15 @@ const PracticeBlackjack = () => {
   ]);
   const [chatLoading, setChatLoading] = useState(false);
 
+  const updateUserStats = async (updatedStats) => {
+    try {
+      await axios.put(`http://localhost:8081/stats/${user.id}/update`, updatedStats);
+    } catch (error) {
+      console.error("Failed to update user stats:", error);
+    }
+  };
+  
+
   useEffect(() => {
     const fetchUserInfo = async () => {
       const userInfo = getUserInfo();
@@ -79,12 +88,12 @@ const PracticeBlackjack = () => {
   const endGameSession = async () => {
     if (!game) return;
     try {
-      await axios.post(`http://localhost:8081/api/game/${game._id}/end`);
+      await axios.post(`http://localhost:8081/api/game/${game._id}/end-session`);
       setGame(null);
-      setMessage('Game session ended.');
+      setMessage('Reshuffling deck');
     } catch (error) {
       console.error('Error ending the game session:', error);
-      setMessage('Failed to end the game session.');
+      setMessage('Failed to reshuffle .');
     }
   };
 
@@ -104,14 +113,29 @@ const PracticeBlackjack = () => {
     if (!game || game.result !== 'ongoing') return;
     try {
       const response = await axios.post(`http://localhost:8081/api/game/${game._id}/stand`);
-      setGame(response.data.gameSession);
-      setMessage(`Game ended. Result: ${response.data.result}`);
+      const updatedGame = response.data.gameSession;
+      setGame(updatedGame);
+      setMessage(`Game ended. Result: ${updatedGame.result}`);
       fetchRemainingCards();
+  
+      // Update stats
+      if (user) {
+        const isWin = updatedGame.result === 'won';
+        const isLoss = updatedGame.result === 'lost';
+  
+        await updateUserStats({
+          wins: isWin ? 1 : 0,
+          losses: isLoss ? 1 : 0,
+          handsPlayed: 1,
+          totalRunningCount: runningCount,
+        });
+      }
     } catch (error) {
       console.error('Error standing:', error);
       setMessage('Error finishing the game.');
     }
   };
+  
 
   const fetchRunningCount = async () => {
     if (!game) return;
@@ -133,12 +157,33 @@ const PracticeBlackjack = () => {
       setMessage('Error retrieving remaining cards.');
     }
   };
-
+  const handleDoubleDown = async () => {
+    if (!game || game.result !== 'ongoing') return;
+    try {
+      const response = await axios.post(`http://localhost:8081/api/game/${game._id}/double-down`);
+      setGame(response.data.gameSession);
+      fetchRemainingCards();
+    } catch (error) {
+      console.error('Error doubling down:', error);
+      setMessage('Error attempting double down.');
+    }
+  };
+  
+  const handleSplit = async () => {
+    if (!game || game.result !== 'ongoing') return;
+    try {
+      const response = await axios.post(`http://localhost:8081/api/game/${game._id}/split`);
+      setGame(response.data.gameSession);
+      fetchRemainingCards();
+    } catch (error) {
+      console.error('Error splitting:', error);
+      setMessage('Error attempting split.');
+    }
+  };
+  
   const handleAsk = async () => {
     setChatLoading(true);
     document.body.style.cursor = 'wait';
-
-    // Get the player's and dealer's hand values
     const playerScore = game.score;
     const dealerScore = game.dealerScore;
 
@@ -183,71 +228,111 @@ const PracticeBlackjack = () => {
       </div>
 
       {game && (
-        <div className="section-container mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Player's Hand */}
-          <div className="section-item flex flex-col items-center justify-center">
-            <h2 className="section-title">Your Hand</h2>
-            <div className="flex mt-4 space-x-4">
-              {game.cardsDealt.map((card, index) => (
-                <Card key={index} card={`${card.value}-${card.suit}`} />
-              ))}
-            </div>
-            <p className="mt-4 text-gray-300">Score: {game.score}</p>
+  <div className="section-container mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+    {/* Player's Hand */}
+    <div
+      className={`section-item flex flex-col items-center justify-center ${
+        game.result === 'won'
+          ? 'border-4 border-green-500'
+          : game.result === 'lost'
+          ? 'border-4 border-red-500'
+          : ''
+      }`}
+    >
+      <h2 className="section-title">Your Hand</h2>
+      <div className="flex mt-4 space-x-4">
+        {game.cardsDealt.map((card, index) => (
+          <Card key={index} card={`${card.value}-${card.suit}`} />
+        ))}
+      </div>
+      <p className="mt-4 text-gray-300">Score: {game.score}</p>
+    </div>
+
+    {/* Render split hands */}
+    {game.splitHands && game.splitHands.length > 0 && (
+      <div className="section-item flex flex-col items-center justify-center">
+        <h2 className="section-title">Split Hands</h2>
+        {game.splitHands.map((splitHand, index) => (
+          <div key={index} className="flex mt-4 space-x-4">
+            {splitHand.cards.map((card, cardIndex) => (
+              <Card key={cardIndex} card={`${card.value}-${card.suit}`} />
+            ))}
+            <p className="mt-4 text-gray-300">Score: {splitHand.score}</p>
           </div>
+        ))}
+      </div>
+    )}
 
-          {/* Dealer's Hand */}
-          <div className="section-item flex flex-col items-center justify-center">
-            <h2 className="section-title">Dealer's Hand</h2>
-            <div className="flex mt-4 space-x-4">
-              {game.dealerCards.map((card, index) => (
-                index === 0 || game.result !== 'ongoing' ? (
-                  <Card key={index} card={`${card.value}-${card.suit}`} />
-                ) : (
-                  <Card key={index} card="back" />
-                )
-              ))}
-            </div>
-            <p className="mt-4 text-gray-300">Score: {game.dealerScore || 'Unknown'}</p>
-          </div>
+    {/* Dealer's Hand */}
+    <div
+      className={`section-item flex flex-col items-center justify-center ${
+        game.result === 'lost'
+          ? 'border-4 border-green-500'
+          : game.result === 'won'
+          ? 'border-4 border-red-500'
+          : ''
+      }`}
+    >
+      <h2 className="section-title">Dealer's Hand</h2>
+      <div className="flex mt-4 space-x-4">
+        {game.dealerCards.map((card, index) => (
+          index === 0 || game.result !== 'ongoing' ? (
+            <Card key={index} card={`${card.value}-${card.suit}`} />
+          ) : (
+            <Card key={index} card="back" />
+          )
+        ))}
+      </div>
+      <p className="mt-4 text-gray-300">Score: {game.dealerScore || 'Unknown'}</p>
+    </div>
 
-          {/* Actions + Running Count */}
-          <div className="section-item flex flex-col items-center justify-center">
-            <h2 className="section-title">Actions</h2>
-            <div className="flex mt-6 space-x-6">
-              <button className="button-primary" onClick={handleHit} disabled={game.result !== 'ongoing'}>
-                Hit
-              </button>
-              <button className="button-primary" onClick={handleStand} disabled={game.result !== 'ongoing'}>
-                Stand
-              </button>
-            </div>
+    {/* Actions + Running Count */}
+    <div className="section-item flex flex-col items-center justify-center">
+      <h2 className="section-title">Actions</h2>
+      <div className="flex mt-6 space-x-6">
+        <button className="button-primary" onClick={handleHit} disabled={game.result !== 'ongoing'}>
+          Hit
+        </button>
+        <button className="button-primary" onClick={handleStand} disabled={game.result !== 'ongoing'}>
+          Stand
+        </button>
+      </div>
+      <div className="flex mt-4 space-x-6">
+        <button className="button-primary" onClick={handleDoubleDown} disabled={game.result !== 'ongoing'}>
+          Double Down
+        </button>
+        <button className="button-primary" onClick={handleSplit} disabled={game.result !== 'ongoing'}>
+          Split
+        </button>
+      </div>
 
-            {/* Running Count */}
-            <button className="mt-4 button-secondary" onClick={() => setShowRunningCount(!showRunningCount)}>
-              {showRunningCount ? 'Hide Running Count' : 'Show Running Count'}
-            </button>
+      {/* Running Count */}
+      <button className="mt-4 button-secondary" onClick={() => setShowRunningCount(!showRunningCount)}>
+        {showRunningCount ? 'Hide Running Count' : 'Show Running Count'}
+      </button>
 
-            {showRunningCount && (
-              <div className="mt-4 text-yellow-400 text-center">
-                <p>Running Count: {runningCount}</p>
-                <p>Remaining Cards: {remainingCards}</p>
-              </div>
-            )}
-          </div>
+      {showRunningCount && (
+        <div className="mt-4 text-yellow-400 text-center">
+          <p>Running Count: {runningCount}</p>
+          <p>Remaining Cards: {remainingCards}</p>
         </div>
       )}
+    </div>
+  </div>
+)}
+
 
       {/* Game Session Buttons (Outside the Box) */}
       {game && (
         <div className="mt-6 flex space-x-6">
           <button className="button-primary" onClick={startNewHand}>Start New Hand</button>
-          <button className="button-danger" onClick={endGameSession}>End Game Session</button>
+          <button className="button-danger" onClick={endGameSession}>Reshuffle</button>
         </div>
       )}
 
       {/* Start New Game Button */}
       <button className="mt-8 button-primary" onClick={() => startNewGameSession(user?.id)}>
-        Start New Game Session
+        Start New Shoe
       </button>
 
       {message && <div className="mt-6 text-center text-gray-300"><p>{message}</p></div>}
@@ -259,7 +344,7 @@ const PracticeBlackjack = () => {
           <textarea
             value={userPrompt}
             onChange={(e) => setUserPrompt(e.target.value)}
-            rows="4"
+            rows="1"
             className="w-80 p-2 border border-gray-300 rounded"
             placeholder="Ask about blackjack basic strategy..."
           />

@@ -70,7 +70,10 @@ const createGame = async (req, res) => {
 
     const deck = createShuffledDeck();
     const playerCards = [deck.pop(), deck.pop()];
-    const dealerCards = [deck.pop()];
+    const dealerCards = [
+      deck.pop(), // Face-up card
+      { ...deck.pop(), hidden: true } // Face-down card
+    ];
 
     const gameSession = new GameSession({
       userId,
@@ -78,14 +81,14 @@ const createGame = async (req, res) => {
       cardsDealt: playerCards,
       dealerCards,
       score: calculateScore(playerCards),
-      dealerScore: calculateScore(dealerCards),
+      dealerScore: calculateScore([dealerCards[0]]), // Only calculate score for visible card initially
       bet,
       actions: [],
       runningCount: 0,
       deck,
     });
 
-    updateRunningCount(gameSession, [...playerCards, ...dealerCards]);
+    updateRunningCount(gameSession, [...playerCards, [dealerCards[0]]]); // Count only face-up dealer card
     await gameSession.save();
 
     res.status(201).json({
@@ -98,6 +101,7 @@ const createGame = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Player hits (draws a card)
 const hit = async (req, res) => {
@@ -231,5 +235,115 @@ const startNewHand = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+const split = async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    const gameSession = await GameSession.findById(gameId);
+    if (!gameSession || gameSession.result !== 'ongoing') {
+      return res.status(400).json({ error: 'Invalid game session' });
+    }
 
-module.exports = { createGame, hit, stand, getRunningCount, endGameSession, startNewHand, remainingCards, createShuffledDeck};
+    const [first, second] = gameSession.cardsDealt;
+    if (!first || !second || first.value !== second.value) {
+      return res.status(400).json({ error: 'Cannot split, cards are not a pair' });
+    }
+
+    if (gameSession.deck.length < 2) {
+      return res.status(400).json({ error: 'Not enough cards to split' });
+    }
+
+    // Initialize split hands
+    const hand1 = [first, gameSession.deck.pop()];
+    const hand2 = [second, gameSession.deck.pop()];
+
+    gameSession.splitHands = [
+      {
+        cards: hand1,
+        score: calculateScore(hand1),
+        result: 'ongoing',
+      },
+      {
+        cards: hand2,
+        score: calculateScore(hand2),
+        result: 'ongoing',
+      },
+    ];
+
+    gameSession.actions.push('split');
+    updateRunningCount(gameSession, [hand1[1], hand2[1]]);
+    await gameSession.save();
+
+    res.status(200).json({
+      message: 'Hand split into two',
+      splitHands: gameSession.splitHands,
+      runningCount: gameSession.runningCount,
+      deckCount: gameSession.deck.length,
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+const doubleDown = async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    const gameSession = await GameSession.findById(gameId);
+    if (!gameSession || gameSession.result !== 'ongoing') {
+      return res.status(400).json({ error: 'Invalid game session' });
+    }
+
+    if (gameSession.cardsDealt.length !== 2) {
+      return res.status(400).json({ error: 'Double down only allowed after initial deal' });
+    }
+
+    if (gameSession.deck.length === 0) {
+      return res.status(400).json({ error: 'Deck is empty' });
+    }
+
+
+    // Draw one final card
+    const newCard = gameSession.deck.pop();
+    gameSession.cardsDealt.push(newCard);
+    updateRunningCount(gameSession, [newCard]);
+    gameSession.score = calculateScore(gameSession.cardsDealt);
+    gameSession.actions.push('doubleDown');
+
+    // Determine result
+    if (gameSession.score > 21) {
+      gameSession.result = 'lost';
+    } else {
+      // Dealer plays
+      while (calculateScore(gameSession.dealerCards) < 17 && gameSession.deck.length > 0) {
+        const dealerCard = gameSession.deck.pop();
+        gameSession.dealerCards.push(dealerCard);
+        updateRunningCount(gameSession, [dealerCard]);
+      }
+
+      gameSession.dealerScore = calculateScore(gameSession.dealerCards);
+
+      if (gameSession.dealerScore > 21 || gameSession.score > gameSession.dealerScore) {
+        gameSession.result = 'won';
+      } else if (gameSession.score < gameSession.dealerScore) {
+        gameSession.result = 'lost';
+      } else {
+        gameSession.result = 'draw';
+      }
+    }
+
+    await gameSession.save();
+
+    res.status(200).json({
+      message: 'Double down executed',
+      gameSession,
+      runningCount: gameSession.runningCount,
+      dealtCardsCount: 52 - gameSession.deck.length,
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+module.exports = { createGame, hit, stand, getRunningCount, endGameSession, startNewHand, remainingCards, createShuffledDeck, split,
+  doubleDown};

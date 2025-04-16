@@ -5,7 +5,9 @@ const { OpenAI } = require("openai");
 
 dotenv.config();
 
-const openai = new OpenAI({ apiKey: process.env.CHAT_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.CHAT_API_KEY,
+                            organization: "org-nj9ke9NN0bXerZO5EJf5R9z5",
+ });
 
 router.post('/canned', async (req, res) => {
     try {
@@ -28,7 +30,7 @@ router.post('/canned', async (req, res) => {
 
         // Request to OpenAI API
         const completion = await openai.chat.completions.create({
-            model: "gpt-4", // Another model name: gpt-4
+            model: "gpt-3.5-turbo", // Another model name: gpt-4
             messages: updatedMessageHistory,  // Use the updated message history with the system context
         });
 
