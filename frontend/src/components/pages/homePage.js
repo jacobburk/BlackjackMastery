@@ -70,13 +70,6 @@ const HomePage = () => {
                 </div>
             </div>
 
-            {/* Profile Button */}
-            <button 
-                onClick={() => navigate('/privateUserProfile')} 
-                className="profile-button"
-            >
-                Profile
-            </button>
         </div>
     );
 };

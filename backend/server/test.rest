@@ -83,3 +83,13 @@ Content-type: application/json
   "gameId": "67b752669af1c07e6a22a3bf"
 }
 
+###
+GET http://localhost:8081/stats/67aaa96b261793446b5d18c3/view
+content-type: application/json
+
+###
+POST http://localhost:8081/stats/67aaa96b261793446b5d18c3/update
+Content-Type: application/json
+{
+  "won": true
+}

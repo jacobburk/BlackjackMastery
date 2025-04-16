@@ -11,53 +11,67 @@ router.get("/:userId/view", async (req, res) => {
       return res.status(404).json({ message: "Stats not found for this user." });
     }
 
-    const winRate = stats.handsPlayed === 0 ? 0 : stats.handsWon / stats.handsPlayed;
-
     res.status(200).json({
       userId: stats.userId,
       handsPlayed: stats.handsPlayed,
       handsWon: stats.handsWon,
-      winRate: parseFloat(winRate.toFixed(4)),
+      
     });
   } catch (err) {
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
-// POST update stats (record a hand)
-router.post("/:userId/update", async (req, res) => {
-  const { userId, won } = req.body;
 
-  if (typeof userId !== "string" || typeof won !== "boolean") {
-    return res.status(400).json({ message: "Invalid input data." });
-  }
-
-  try {
-    let stats = await PlayerStats.findOne({ userId });
-
-    if (!stats) {
-      stats = new PlayerStats({ userId, handsPlayed: 0, handsWon: 0 });
+router.post("/:userId/updateHandsPlayed", async (req, res) => {
+    try {
+      // Find the stats by userId (using the URL param)
+      let stats = await PlayerStats.findOne({ userId: req.params.userId });
+  
+      // Increment hands played
+      stats.handsPlayed += 1;
+  
+      // Save the updated stats to the database
+      await stats.save();
+  
+      // Return the updated stats
+      res.status(200).json({
+        message: "Hands played updated successfully.",
+        stats: {
+          userId: stats.userId,
+          handsPlayed: stats.handsPlayed,
+          handsWon: stats.handsWon,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ error: "Server error", details: err.message });
     }
+  });
 
-    stats.handsPlayed += 1;
-    if (won) stats.handsWon += 1;
-
-    await stats.save();
-
-    const winRate = stats.handsPlayed === 0 ? 0 : stats.handsWon / stats.handsPlayed;
-
-    res.status(200).json({
-      message: "Stats updated successfully.",
-      stats: {
-        userId: stats.userId,
-        handsPlayed: stats.handsPlayed,
-        handsWon: stats.handsWon,
-        winRate: parseFloat(winRate.toFixed(4)),
-      },
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Server error", details: err.message });
-  }
-});
+router.post("/:userId/updateHandsWon", async (req, res) => {
+    try {
+      // Find the stats by userId (using the URL param)
+      let stats = await PlayerStats.findOne({ userId: req.params.userId });
+  
+      // Increment hands won
+      stats.handsWon += 1;
+  
+      // Save the updated stats to the database
+      await stats.save();
+  
+      // Return the updated stats
+      res.status(200).json({
+        message: "Hands won updated successfully.",
+        stats: {
+          userId: stats.userId,
+          handsPlayed: stats.handsPlayed,
+          handsWon: stats.handsWon,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ error: "Server error", details: err.message });
+    }
+  });
+    
 
 module.exports = router;

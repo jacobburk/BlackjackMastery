@@ -21,13 +21,6 @@ const PracticeBlackjack = () => {
   ]);
   const [chatLoading, setChatLoading] = useState(false);
 
-  const updateUserStats = async (updatedStats) => {
-    try {
-      await axios.put(`http://localhost:8081/stats/${user.id}/update`, updatedStats);
-    } catch (error) {
-      console.error("Failed to update user stats:", error);
-    }
-  };
   
 
   useEffect(() => {
@@ -61,6 +54,9 @@ const PracticeBlackjack = () => {
       setMessage('New game session started!');
       setRunningCount(0);
       fetchRemainingCards();
+      if (user && user.id) {
+        await axios.post(`http://localhost:8081/stats/${user.id}/updateHandsPlayed`);
+      }
     } catch (error) {
       console.error('Error starting the game:', error);
       setMessage('Failed to start a new game session.');
@@ -77,6 +73,11 @@ const PracticeBlackjack = () => {
       setGame(response.data.gameSession);
       setMessage('New hand started!');
       fetchRemainingCards();
+  
+      // POST request to update handsPlayed stat
+      if (user && user.id) {
+        await axios.post(`http://localhost:8081/stats/${user.id}/updateHandsPlayed`);
+      }
     } catch (error) {
       console.error('Error starting a new hand:', error);
       setMessage('Failed to start a new hand.');
@@ -84,6 +85,8 @@ const PracticeBlackjack = () => {
       setLoading(false);
     }
   };
+  
+  
 
   const endGameSession = async () => {
     if (!game) return;
@@ -118,23 +121,25 @@ const PracticeBlackjack = () => {
       setMessage(`Game ended. Result: ${updatedGame.result}`);
       fetchRemainingCards();
   
-      // Update stats
+      // Update stats based on the result
       if (user) {
+        // Only update handsWon if the user won the hand
         const isWin = updatedGame.result === 'won';
-        const isLoss = updatedGame.result === 'lost';
   
-        await updateUserStats({
-          wins: isWin ? 1 : 0,
-          losses: isLoss ? 1 : 0,
-          handsPlayed: 1,
-          totalRunningCount: runningCount,
-        });
+        // Update the user's stats: increment handsWon if the user won the hand
+        if (isWin) {
+          await axios.post(`http://localhost:8081/stats/${user.id}/updateHandsWon`, {
+            handsWon: 1,
+          });
+        }
       }
     } catch (error) {
       console.error('Error standing:', error);
       setMessage('Error finishing the game.');
     }
   };
+  
+  
   
 
   const fetchRunningCount = async () => {
