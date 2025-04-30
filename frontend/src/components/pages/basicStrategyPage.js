@@ -18,12 +18,40 @@ const BlackjackStrategyPage = () => {
         }
     }, [navigate]);
 
-    const handleToggleExplanation = (section) => {
-        setShowExplanation((prevState) => ({
-            ...prevState,
-            [section]: !prevState[section],
-        }));
+    const updateBankroll = async (userId, amount) => {
+        try {
+            const res = await fetch(`http://localhost:8081/stats/${user.id}/updateBankroll`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ amount }),
+            });
+    
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to update bankroll');
+            console.log('Bankroll updated:', data.stats.bankroll);
+        } catch (err) {
+            console.error('Error updating bankroll:', err.message);
+        }
     };
+    
+    const handleToggleExplanation = (section) => {
+        setShowExplanation((prevState) => {
+            const newState = {
+                ...prevState,
+                [section]: !prevState[section],
+            };
+    
+            // Reward only when explanation is being shown
+            if (!prevState[section] && user) {
+                updateBankroll(user.id, 250);
+            }
+    
+            return newState;
+        });
+    };
+    
 
     if (!user) {
         return null; // Optionally, you could display a loading spinner here
