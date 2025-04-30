@@ -11,7 +11,6 @@ const PrivateUserProfile = () => {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  // handle logout button
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
@@ -23,9 +22,20 @@ const PrivateUserProfile = () => {
 
     if (currentUser?.id) {
       fetch(`http://localhost:8081/stats/${currentUser.id}/view`)
-        .then((res) => res.json())
-        .then((data) => setStats(data))
-        .catch((err) => console.error("Error fetching stats:", err));
+        .then((res) => {
+          if (!res.ok) throw new Error("Stats not found");
+          return res.json();
+        })
+        .then((data) => {
+          const { handsPlayed, handsWon } = data;
+          const winRate =
+            handsPlayed > 0 ? ((handsWon / handsPlayed) * 100).toFixed(2) : "0.00";
+          setStats({ handsPlayed, handsWon, winRate });
+        })
+        .catch((err) => {
+          console.error("Error fetching stats:", err);
+          setStats(null);
+        });
     }
   }, []);
 
@@ -42,19 +52,23 @@ const PrivateUserProfile = () => {
       <div className="text-center py-10">
         <h1 className="text-4xl font-bold text-red-500">{user.username}</h1>
 
-        {/* Display stats if available */}
         {stats ? (
           <div className="mt-6 space-y-2 text-lg text-gray-300">
-            <p><span className="text-white font-semibold">Hands Played:</span> {stats.handsPlayed}</p>
-            <p><span className="text-white font-semibold">Hands Won:</span> {stats.handsWon}</p>
-            <p><span className="text-white font-semibold">Win Rate:</span> {stats.winRate}</p>
+            <p>
+              <span className="text-white font-semibold">Hands Played:</span> {stats.handsPlayed}
+            </p>
+            <p>
+              <span className="text-white font-semibold">Hands Won:</span> {stats.handsWon}
+            </p>
+            <p>
+              <span className="text-white font-semibold">Win Rate:</span> {stats.winRate}%
+            </p>
           </div>
         ) : (
           <p className="mt-6 text-gray-500">Loading stats...</p>
         )}
       </div>
 
-      {/* Log Out Button */}
       <div className="mt-10">
         <button
           onClick={handleShow}
@@ -64,7 +78,6 @@ const PrivateUserProfile = () => {
         </button>
       </div>
 
-      {/* Log Out Modal */}
       {show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-gray-800 rounded-lg w-1/3 p-6">

@@ -5,17 +5,22 @@ const PlayerStats = require("../models/statsModel");
 // GET stats by userId
 router.get("/:userId/view", async (req, res) => {
   try {
-    const stats = await PlayerStats.findOne({ userId: req.params.userId });
+    let stats = await PlayerStats.findOne({ userId: req.params.userId });
 
+    // If not found, create a new one
     if (!stats) {
-      return res.status(404).json({ message: "Stats not found for this user." });
+      stats = new PlayerStats({
+        userId: req.params.userId,
+        handsPlayed: 0,
+        handsWon: 0,
+      });
+      await stats.save();
     }
 
     res.status(200).json({
       userId: stats.userId,
       handsPlayed: stats.handsPlayed,
       handsWon: stats.handsWon,
-      
     });
   } catch (err) {
     res.status(500).json({ error: "Server error", details: err.message });
