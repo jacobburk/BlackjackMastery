@@ -27,10 +27,10 @@ const PrivateUserProfile = () => {
           return res.json();
         })
         .then((data) => {
-          const { handsPlayed, handsWon } = data;
+          const { handsPlayed, handsWon, bankroll } = data;
           const winRate =
             handsPlayed > 0 ? ((handsWon / handsPlayed) * 100).toFixed(2) : "0.00";
-          setStats({ handsPlayed, handsWon, winRate });
+          setStats({ handsPlayed, handsWon, bankroll, winRate });
         })
         .catch((err) => {
           console.error("Error fetching stats:", err);
@@ -62,6 +62,9 @@ const PrivateUserProfile = () => {
             </p>
             <p>
               <span className="text-white font-semibold">Win Rate:</span> {stats.winRate}%
+            </p>
+            <p>
+              <span className="text-white font-semibold">Bankroll:</span> ${stats.bankroll.toFixed(2)}
             </p>
           </div>
         ) : (

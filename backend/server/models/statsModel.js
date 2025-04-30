@@ -20,6 +20,12 @@ const playerStatsSchema = new mongoose.Schema(
       default: 0,
       label: "Hands Won",
     },
+    bankroll: {
+      type: Number,
+      required: true,
+      default: 1000, 
+      label: "Bankroll",
+    },
   },
   { collection: "player_stats" }
 );

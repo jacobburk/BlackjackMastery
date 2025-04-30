@@ -52,10 +52,12 @@ const createGame = async (req, res) => {
     if (!user) return res.status(400).json({ error: 'User not found' });
     if (bet <= 0) return res.status(400).json({ error: 'Bet must be positive' });
 
+    // Create a shuffled deck for the new game session
     const deck = createShuffledDeck();
     const playerCards = [deck.pop(), deck.pop()];
     const dealerCards = [deck.pop(), { ...deck.pop(), hidden: true }];
 
+    // Create a new game session with the shuffled deck
     const gameSession = new GameSession({
       userId,
       result: 'ongoing',
@@ -65,10 +67,11 @@ const createGame = async (req, res) => {
       dealerScore: calculateScore([dealerCards[0]]),
       bet,
       actions: [],
-      runningCount: 0,
-      deck,
+      runningCount: 0, // Reset running count when starting a new game session
+      deck, // Initialize the deck for the new session
     });
 
+    // Update the running count based on the initial cards dealt
     updateRunningCount(gameSession, [...playerCards, dealerCards[0]]);
     await gameSession.save();
 
@@ -82,6 +85,7 @@ const createGame = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 const hit = async (req, res) => {
   try {
@@ -173,17 +177,19 @@ const startNewHand = async (req, res) => {
       return res.status(400).json({ error: 'Not enough cards in the deck. Please reshuffle.' });
     }
 
-    const playerCards = [gameSession.deck.pop(), gameSession.deck.pop()];
-    const dealerCards = [gameSession.deck.pop()];
+    const deck = gameSession.deck; // <<< Add this line
+
+    const playerCards = [deck.pop(), deck.pop()];
+    const dealerCards = [deck.pop(), { ...deck.pop(), hidden: true }];
 
     gameSession.cardsDealt = playerCards;
     gameSession.dealerCards = dealerCards;
     gameSession.score = calculateScore(playerCards);
-    gameSession.dealerScore = calculateScore(dealerCards);
+    gameSession.dealerScore = calculateScore([dealerCards[0]]);
     gameSession.result = 'ongoing';
     gameSession.actions = [];
 
-    updateRunningCount(gameSession, [...playerCards, ...dealerCards]);
+    updateRunningCount(gameSession, [...playerCards, dealerCards[0]]);
     await gameSession.save();
 
     res.status(200).json({
@@ -196,6 +202,7 @@ const startNewHand = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 const getRunningCount = async (req, res) => {
